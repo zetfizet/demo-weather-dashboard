@@ -2,6 +2,9 @@
 
 Starter ini menyiapkan cara aman untuk publish dashboard Metabase menggunakan signed embedding.
 
+## Deskripsi singkat
+Project ini adalah gateway kecil berbasis Node.js untuk menampilkan dashboard Metabase ke halaman web publik secara aman. Aplikasi menghasilkan token embed JWT di backend, lalu frontend hanya memuat dashboard menggunakan token tersebut tanpa mengekspos secret key.
+
 ## Kenapa aman?
 - Secret key disimpan di environment variable (`METABASE_SECRET_KEY`), bukan hardcoded.
 - JWT dibuat di backend (`/api/metabase/dashboard-token`), bukan di frontend.
