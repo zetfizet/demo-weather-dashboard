@@ -37,6 +37,13 @@ function respondMissingConfig(res) {
   });
 }
 
+function normalizeOrigin(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\/$/, "");
+}
+
 app.use(express.json());
 app.set("trust proxy", trustProxy);
 app.use(
@@ -48,7 +55,9 @@ app.use(
 app.use(express.static(path.join(__dirname, "public")));
 
 function isOriginAllowed(origin) {
-  if (!origin) {
+  const normalizedOrigin = normalizeOrigin(origin);
+
+  if (!normalizedOrigin) {
     return true;
   }
 
@@ -56,7 +65,13 @@ function isOriginAllowed(origin) {
     return true;
   }
 
-  return allowedOrigins.includes(origin);
+  const normalizedAllowlist = allowedOrigins.map((item) => normalizeOrigin(item));
+
+  if (normalizedAllowlist.includes("*")) {
+    return true;
+  }
+
+  return normalizedAllowlist.includes(normalizedOrigin);
 }
 
 function isRateLimited(ipAddress, now) {
@@ -148,8 +163,15 @@ function checkMetabaseHealth(timeoutMs = 2500) {
 
 app.use("/api/metabase/dashboard-token", (req, res, next) => {
   const requestOrigin = req.headers.origin;
+  const requestHost = req.headers.host;
+  const requestProto = req.headers["x-forwarded-proto"] || req.protocol || "https";
+  const requestHostOrigin = requestHost ? `${requestProto}://${requestHost}` : "";
+  const sameOriginRequest =
+    normalizeOrigin(requestOrigin) &&
+    normalizeOrigin(requestHostOrigin) &&
+    normalizeOrigin(requestOrigin) === normalizeOrigin(requestHostOrigin);
 
-  if (!isOriginAllowed(requestOrigin)) {
+  if (!sameOriginRequest && !isOriginAllowed(requestOrigin)) {
     console.warn(
       `[AUDIT] blocked_origin ip=${req.ip || "unknown"} origin=${requestOrigin || "none"}`
     );
