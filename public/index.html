@@ -99,7 +99,16 @@
         const response = await fetch("/api/metabase/dashboard-token");
 
         if (!response.ok) {
-          alert("Gagal mengambil token embed.");
+          let detail = "";
+
+          try {
+            const errorPayload = await response.json();
+            detail = errorPayload.error ? ` (${errorPayload.error})` : "";
+          } catch (_error) {
+            detail = "";
+          }
+
+          alert(`Gagal mengambil token embed. Status: ${response.status}${detail}`);
           return;
         }
 
