@@ -4,35 +4,6 @@
   "public": false,
   "buildCommand": "npm ci",
   "framework": "express",
-  "env": {
-    "METABASE_SECRET_KEY": {
-      "description": "Metabase embed secret key (dari Settings > Admin > Embedding -> Embed Secret)"
-    },
-    "METABASE_SITE_URL": {
-      "description": "URL Metabase Anda (contoh: https://metabase.domain.com)"
-    },
-    "DASHBOARD_ALLOWLIST": {
-      "default": "2",
-      "description": "Daftar ID dashboard yang boleh di-embed (pisah dengan koma)"
-    },
-    "ALLOWED_ORIGINS": {
-      "default": "*",
-      "description": "Origin yang boleh akses endpoint token (pisah dengan koma). Default * = semua origin lolos"
-    },
-    "TOKEN_RATE_WINDOW_MS": {
-      "default": "60000"
-    },
-    "TOKEN_RATE_MAX": {
-      "default": "30"
-    },
-    "TRUST_PROXY": {
-      "default": "true",
-      "description": "Vercel menjalankan di belakang proxy jadi set true"
-    },
-    "INTERNAL_API_KEY": {
-      "description": "Kosongkan untuk mode public, atau isi untuk proteksi tambahan"
-    }
-  },
   "functions": {
     "server.js": {
       "memory": 1024,
