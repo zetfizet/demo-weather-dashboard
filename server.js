@@ -27,11 +27,14 @@ const trustProxy = process.env.TRUST_PROXY === "true";
 const internalApiKey = process.env.INTERNAL_API_KEY || "";
 const tokenRequestLog = new Map();
 
-if (!metabaseSecretKey || !metabaseSiteUrl) {
-  console.error(
-    "Missing required environment variables. Please set METABASE_SECRET_KEY and METABASE_SITE_URL."
-  );
-  process.exit(1);
+function hasRequiredMetabaseConfig() {
+  return Boolean(metabaseSecretKey && metabaseSiteUrl);
+}
+
+function respondMissingConfig(res) {
+  return res.status(500).json({
+    error: "Server is missing METABASE_SECRET_KEY or METABASE_SITE_URL."
+  });
 }
 
 app.use(express.json());
@@ -96,6 +99,10 @@ function extractProvidedApiKey(req) {
 }
 
 function checkMetabaseHealth(timeoutMs = 2500) {
+  if (!metabaseSiteUrl) {
+    return Promise.resolve({ ok: false, error: "METABASE_SITE_URL is missing." });
+  }
+
   const healthUrl = new URL("/api/health", metabaseSiteUrl);
   const client = healthUrl.protocol === "https:" ? https : http;
 
@@ -185,6 +192,10 @@ app.use("/api/metabase/dashboard-token", (req, res, next) => {
 });
 
 app.get("/api/metabase/dashboard-token", (req, res) => {
+  if (!hasRequiredMetabaseConfig()) {
+    return respondMissingConfig(res);
+  }
+
   const dashboardId = Number(req.query.dashboardId || 2);
 
   if (!Number.isInteger(dashboardId) || dashboardId <= 0) {
@@ -213,7 +224,7 @@ app.get("/api/metabase/dashboard-token", (req, res) => {
 
 app.get("/health", async (_req, res) => {
   const metabaseHealth = await checkMetabaseHealth();
-  const ok = Boolean(metabaseHealth.ok);
+  const ok = Boolean(metabaseHealth.ok) && hasRequiredMetabaseConfig();
 
   return res.status(ok ? 200 : 503).json({
     ok,
@@ -222,6 +233,10 @@ app.get("/health", async (_req, res) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(`Server listening on http://localhost:${port}`);
+  });
+}
+
+module.exports = app;
