@@ -1,0 +1,47 @@
+# Example Nginx reverse proxy for Metabase embed gateway
+# Adjust server_name, TLS cert paths, and upstream as needed.
+
+upstream metabase_embed_app {
+  server 127.0.0.1:3000;
+  keepalive 64;
+}
+
+server {
+  listen 80;
+  server_name your-domain.com;
+  return 301 https://$host$request_uri;
+}
+
+server {
+  listen 443 ssl http2;
+  server_name your-domain.com;
+
+  ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+
+  add_header X-Content-Type-Options nosniff always;
+  add_header Referrer-Policy strict-origin-when-cross-origin always;
+  add_header X-Frame-Options SAMEORIGIN always;
+
+  location / {
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_pass http://metabase_embed_app;
+  }
+
+  location /api/metabase/dashboard-token {
+    limit_req zone=tokenburst burst=20 nodelay;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_pass http://metabase_embed_app;
+  }
+}
+
+# Place this in http {} scope
+# limit_req_zone $binary_remote_addr zone=tokenburst:10m rate=10r/s;
